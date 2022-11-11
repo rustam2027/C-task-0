@@ -15,7 +15,8 @@ void init_empty_string(MyString* String){
         printf("WARNING: OUT OF MEMORY");
         exit(0);
     }
-    String->len = 0;
+    String->data[0] = 0;
+    String->len = 1;
     String->cap = 2;
 }
 
@@ -31,21 +32,36 @@ void realloc_string(MyString* String){
 
 
 void add_to_string(MyString* String, char thing){
-
+    if (String->cap >= String->len){
+        String->data[String->len - 1] = thing;
+        String->len += 1;
+    }
+    printf("%d, %d\n", String->cap, String->len);
+    if (String->cap < String->len){
+        realloc_string(String);
+    }
+    String->data[String->len] = 0;
+    String->len++;
 }
 
 
 void scan_string(MyString* string){
-    char s = 'A';
-    int i = 0;
+    char s;
+    scanf("%c", &s);
+    string->len = 0;
     while (s != '0'){
-        scanf("%c", &s);
-        string->data[i] = s;
-        if (i + 1 == string->cap){
+        string->data[string->len] = s;
+        string->len ++;
+        if (string->len  == string->cap){
             realloc_string(string);
         }
-        i ++;
+        scanf("%c", &s);
     }
+    if (string->cap == string->len){
+        realloc_string(string);
+    }
+    string->data[string->len] = 0;
+    string->len ++;
 }
 
 
@@ -59,8 +75,11 @@ int main(){
     MyString example;
     init_empty_string(&example);
     scan_string(&example);
-    int i = 0;
-    printf("%s", example.data);
+    add_to_string(&example, 'D');
+    size_t i = 0;
+    for (i = 0; i < example.cap; i ++){
+        printf("%d ", example.data[i]);
+    }
     free_string(&example);
     return 0;
 }
