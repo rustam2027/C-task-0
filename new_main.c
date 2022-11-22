@@ -1,6 +1,8 @@
 #include <stdio.h>
 #include <stdlib.h>
+#include <assert.h>
 
+int DEBUG_PRINT = 0;
 
 void null_check(void* pointer){
     if (!pointer){
@@ -51,6 +53,7 @@ void add_to_string(DynString* ptr_string, char c){
 
 
 void delete_from_string(DynString* ptr_string, size_t index){
+    assert(index < ptr_string->len);
     size_t i = index + 1;
     for (; i < ptr_string->len; i++){
         ptr_string->data[i - 1] = ptr_string->data[i];
@@ -60,10 +63,8 @@ void delete_from_string(DynString* ptr_string, size_t index){
 }
 
 
-void free_string(DynString* ptr_string){
+void free_string(DynString* ptr_string){ 
     free(ptr_string->data);
-    ptr_string->cap = 0;
-    ptr_string->len = 0;
 }
 
 
@@ -91,28 +92,27 @@ void add_to_array(DynArrString* ptr_arr, DynString string){
 }
 
 
-void delete_from_array(DynArrString* ptr_arr, size_t index){
+void delete_from_array(DynArrString* ptr_arr, size_t index){ // assert index
+    assert(index < ptr_arr->len);
     free_string(&ptr_arr->data[index]);
     size_t i = index + 1;
     for (; i < ptr_arr->len; i++){
         ptr_arr->data[i - 1] = ptr_arr->data[i];
     }
     ptr_arr->len -= 1;
-    init_empty_string(&ptr_arr->data[ptr_arr->len]);
+    // init_empty_string(&ptr_arr->data[ptr_arr->len]); // delete
 }
 
 
 void free_array(DynArrString* ptr_arr){
     size_t i = 0;
-    for (i = 0; i <= ptr_arr->len; i++){
+    for (i = 0; i <= ptr_arr->len - 1; i++){
         free_string(&ptr_arr->data[i]);
     }
-    ptr_arr->cap = 0;
-    ptr_arr->len = 0;
 }
 
 
-int from_char_to_int(DynString string, size_t l, size_t r){
+int from_char_to_int(DynString string, size_t l, size_t r){ // atoi
     int return_number = 0;
     int dex  = 1;
     // size_t i = r - 1;
@@ -137,7 +137,7 @@ int from_char_to_int(DynString string, size_t l, size_t r){
 }
 
 
-DynString from_int_to_char(int number){
+DynString from_int_to_char(int number){ // itoa
     DynString return_string;
     init_empty_string(&return_string);
 
@@ -171,18 +171,12 @@ DynString from_int_to_char(int number){
 
 
 int if_letter(char c){
-    if ((c >= 65 && c <= 90) || (c >= 97 && c <= 122)){
-        return 1;
-    }
-    return 0;
+    return ((c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z'));
 }
 
 
 int if_numeric(char c){
-    if (c - '0' >= 0 && c - '0' <= 9){
-        return 1;
-    }
-    return 0;
+    return (c - '0' >= 0 && c - '0' <= 9);
 }
 
 
@@ -196,7 +190,7 @@ int if_word(DynString string){
 }
 
 
-int check_if_palindrome(DynString string){
+int check_if_palindrome(DynString string){ // возвращать условие
     size_t i = 0;
     if (if_word(string) == 0){
         return 0;
@@ -206,11 +200,7 @@ int check_if_palindrome(DynString string){
             return 0;
         }
     }
-    if (string.len > 1){
-        return 1;
-    } else {
-        return 0;
-    }
+    return (string.len > 1);
 }
 
 
@@ -244,13 +234,27 @@ int main(int argc, const char** argv){
     init_empty_string(&inter_example);
     init_empty_array(&ex_arr);
 
-    FILE* file = fopen(argv[1], "r");
+    FILE* file_input;
+    FILE* file_output;
+
+    if (DEBUG_PRINT){
+        if (argc == 1){
+            file_input = fopen("text1.in", "r");
+            file_output = fopen("text1.out", "w");
+
+        }
+    } else {
+        file_input = fopen(argv[1], "r");
+        file_output = fopen(argv[2], "w");
+    }
+
     char c;
-    if (file == NULL){
+
+    if (file_input == NULL){
         printf("ERROR: wrong input file name\n");
         exit(0);
     }
-    c = fgetc(file);
+    c = fgetc(file_input);
     while (c != EOF){
         if (c == '\n' || c == ' ' || c == '(' || c == ')' || c == '+' || c == '-' || c == '*' || c == '/'){
             if (example.len != 0){
@@ -263,10 +267,10 @@ int main(int argc, const char** argv){
 
                 add_to_string(&inter_example, c);
 
-                c = fgetc(file);
+                c = fgetc(file_input);
 
-                if (if_letter(c) == 1 || if_numeric(c) == 1){
-                    example = inter_example;
+                if (if_letter(c) || if_numeric(c)){
+                    example = inter_example; // утечка памяти 
 
                     add_to_string(&example, c);
 
@@ -286,22 +290,24 @@ int main(int argc, const char** argv){
 
                 init_empty_string(&example);
             }
-        } else if (c == 13) {
+        } else if (c == '\r') {
 
         } else {
             add_to_string(&example, c);
         }
-        c = fgetc(file);
+        c = fgetc(file_input);
     }
 
-    for (size_t i = 0; i < ex_arr.len; i++){
-        for (size_t j = 0; j < ex_arr.data[i].len; j++){
-            printf("%d ", ex_arr.data[i].data[j]);
+    if (DEBUG_PRINT){
+        for (size_t i = 0; i < ex_arr.len; i++){ // Debug print
+            for (size_t j = 0; j < ex_arr.data[i].len; j++){
+                printf("%d ", ex_arr.data[i].data[j]);
+            }
+            printf("\n");
         }
-        printf("\n");
     }
 
-    fclose(file);
+    fclose(file_input);
     
     if (example.len != 0){
         add_to_array(&ex_arr, example);
@@ -332,16 +338,22 @@ int main(int argc, const char** argv){
             }
 
             if (ex_arr.data[i].data[0] == '('){
-                size_t iter = i;
+                size_t iter = i + 1;
                 int Flag = 0;
                 for (; iter < ex_arr.len; iter++){
-                    if (if_word(ex_arr.data[iter]) == 1){
-                        Flag += 1;
+                    if (DEBUG_PRINT){
+                        printf("%s \n", ex_arr.data[iter].data);
                     }
-                    if (ex_arr.data[iter].data[0] == ')' && Flag <= 1){
+                    if (if_word(ex_arr.data[iter]) || check_if_number(ex_arr.data[iter])){
+                        Flag += 1;
+                    } else if (ex_arr.data[iter].data[0] == ')' && Flag <= 1){
                         delete_from_array(&ex_arr, iter);
                         delete_from_array(&ex_arr, i);
                         changes = 1;
+                        break;
+                    } else if (ex_arr.data[iter].data[0] == ' ') {
+                        continue;
+                    } else {
                         break;
                     }
                 }
@@ -355,14 +367,13 @@ int main(int argc, const char** argv){
                     delete_from_array(&ex_arr, i);
                     changes = 1;
                 }
+            } else if (ex_arr.data[i].data[0] == ' ' && ex_arr.data[i - 1].data[0] == ' '){
+                delete_from_array(&ex_arr, i);
+                changes = 1;
+            } else if (i > 2 && ex_arr.data[i].data[0] == '\n' && ex_arr.data[i - 1].data[0] == '\n' && ex_arr.data[i - 2].data[0] == '\n'){
+                delete_from_array(&ex_arr, i);
+                changes = 1;
             }
-            else if (ex_arr.data[i].data[0] == ' ' && ex_arr.data[i - 1].data[0] == ' '){
-                    delete_from_array(&ex_arr, i);
-                    changes = 1;
-                } else if (i > 2 && ex_arr.data[i].data[0] == '\n' && ex_arr.data[i - 1].data[0] == '\n' && ex_arr.data[i - 2].data[0] == '\n'){
-                    delete_from_array(&ex_arr, i);
-                    changes = 1;
-                }
 
             if (check_if_number(ex_arr.data[i]) == 1){
                 int a = from_char_to_int(ex_arr.data[i], 0, ex_arr.data[i].len - 1);
@@ -420,6 +431,13 @@ int main(int argc, const char** argv){
 
                     free_string(&ex_arr.data[i]);
 
+                    if (DEBUG_PRINT){
+                        printf("%d %d %d %d\n", a, operation, b, number);
+                        for (size_t iter = 0; iter < ex_arr.len; iter ++){
+                            printf("%s", ex_arr.data[iter].data);
+                        }
+                    }
+
                     if (division_zero == 1){
                         DynString error;
                         init_empty_string(&error);
@@ -467,21 +485,27 @@ int main(int argc, const char** argv){
                     add_to_string(&ex_arr.data[i], 'C');
                 }
             }
+
+            if (DEBUG_PRINT){
+                for (size_t iter = 0; iter < ex_arr.len; iter ++){
+                    printf("%s", ex_arr.data[iter].data);
+                }
+            }
         }
     }
-    file = fopen(argv[2], "w");
 
     for (size_t i = 0; i < ex_arr.len; i++){
         for (size_t j = 0; j < ex_arr.data[i].len; j++){
-            putc(ex_arr.data[i].data[j], file);
+            putc(ex_arr.data[i].data[j], file_output);
         }
     }
-    fclose(file);
+
+    fclose(file_output);
 
     // for (i = 0; i < ex_arr.len; i ++){
     //     printf("%s", ex_arr.data[i].data);
     // }
-    // free_array(&ex_arr);
+    free_array(&ex_arr);
     return 0;
 }
 
